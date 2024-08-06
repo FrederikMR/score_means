@@ -1,6 +1,6 @@
 #!/bin/sh
 #BSUB -q gpuv100
-#BSUB -J nSphere2_s1ism
+#BSUB -J nSphere10_stism
 #BSUB -n 4
 #BSUB -gpu "num=1:mode=exclusive_process"
 #BSUB -W 4:00
@@ -19,20 +19,20 @@ module swap python3/3.10.12
 
 python3 train_score.py \
     --manifold nSphere \
-    --dim 2 \
-    --s1_loss_type ism \
-    --s2_loss_type dsm \
+    --dim 10 \
+    --loss_type ism \
     --load_model 0 \
-    --T_sample 1 \
+    --T_sample 0 \
     --t0 0.1 \
-    --train_net s1 \
-    --max_T 1.0 \
+    --gamma 1.0 \
+    --train_net st \
+    --T 1.0 \
     --lr_rate 0.001 \
     --epochs 200000 \
     --warmup_epochs 1000 \
     --x_samples 1 \
     --t_samples 100 \
-    --repeats 2048 \
+    --repeats 1024 \
     --dt_steps 100 \
     --save_step 100 \
     --seed 2712
