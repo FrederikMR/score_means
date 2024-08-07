@@ -18,6 +18,7 @@ class nEllipsoid(RiemannianManifold):
     def __init__(self,
                  dim:int=2,
                  params:Array=None,
+                 eps:float=1e-10,
                  )->None:
         
         if params == None:
@@ -26,6 +27,7 @@ class nEllipsoid(RiemannianManifold):
         
         self.dim = dim
         self.emb_dim = dim +1
+        self.eps = eps
         super().__init__(f=self.f_stereographic, 
                          invf = self.invf_stereographic,
                          intrinsic=False)
@@ -92,7 +94,12 @@ class nEllipsoid(RiemannianManifold):
         
         norm = jnp.linalg.norm(v)
         
-        return (jnp.cos(norm*T)*x+jnp.sin(norm*T)*v/norm)*self.params
+        y = lax.cond(norm>self.eps,
+                     lambda *_: (jnp.cos(norm*T)*x+jnp.sin(norm*T)*v/norm)*self.params,
+                     lambda *_: x,
+                     )
+
+        return self.M_proj(y)
     
     def Log(self,
             x:Array,
@@ -105,8 +112,14 @@ class nEllipsoid(RiemannianManifold):
         dot = jnp.dot(x,y)
         dist = jnp.arccos(jnp.dot(x,y))
         val = y-dot*x
+        norm = jnp.linalg.norm(val)
         
-        return self.params*dist*val/jnp.linalg.norm(val)
+        v = lax.cond(norm>self.eps,
+                     lambda *_: self.params*dist*val/norm,
+                     lambda *_: jnp.zeros_like(x),
+                     )
+        
+        return v
     
     def Geodesic(self,
                  x:Array,
