@@ -28,7 +28,7 @@ python3 train_score.py \
     --train_net st \
     --T 1.0 \
     --lr_rate 0.001 \
-    --epochs 200000 \
+    --epochs 50000 \
     --warmup_epochs 1000 \
     --x_samples 1 \
     --t_samples 100 \
