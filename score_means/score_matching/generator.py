@@ -71,7 +71,6 @@ class BrownianSampler(object):
             dt, t, dW, xt = self.sampler(self.x0s, self.T)
 
             self.x0s = xt[-1] 
-            print(jnp.linalg.norm(xt[-1], axis=1))
             
             if jnp.isnan(jnp.sum(xt)):
                 self.x0s = self.x0s_init

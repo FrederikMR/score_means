@@ -46,7 +46,7 @@ def parse_args():
                         type=str)
     parser.add_argument('--s2_loss_type', default="dsm",
                         type=str)
-    parser.add_argument('--dt_approx', default="s1",
+    parser.add_argument('--dt_approx', default="st",
                         type=str)
     parser.add_argument('--t0', default=0.01,
                         type=float)

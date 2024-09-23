@@ -115,7 +115,7 @@ def train_s1(M:RiemannianManifold,
     for step in range(epochs):
         data = next(train_dataset)
         if ((jnp.isnan(jnp.sum(data)))):
-            generator.x0s = generator.x0s_default
+            generator.x0s = generator.x0s_init
             train_dataset = tf.data.Dataset.from_generator(generator,output_types=tf.float32,
                                                            output_shapes=([generator.t_samples,
                                                                            generator.N_sim,
