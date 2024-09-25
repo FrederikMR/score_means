@@ -19,6 +19,7 @@ class nEllipsoid(RiemannianManifold):
                  dim:int=2,
                  params:Array=None,
                  eps:float=1e-10,
+                 seed:int=2712,
                  )->None:
         
         if params == None:
@@ -28,6 +29,9 @@ class nEllipsoid(RiemannianManifold):
         self.dim = dim
         self.emb_dim = dim +1
         self.eps = eps
+        self.seed = seed
+        self.key = jrandom.key(seed)
+        
         super().__init__(f=self.f_stereographic, 
                          invf = self.invf_stereographic,
                          intrinsic=False)
@@ -55,13 +59,29 @@ class nEllipsoid(RiemannianManifold):
         x0 = x[0]
         return x[1:]/(1+x0)
     
+    def sample(self,
+               N:int,
+               x0:Array,
+               sigma:float=1.0,
+               )->Array:
+    
+        key, subkey = jrandom.split(self.key)
+        self.key = key
+    
+        z = sigma*jrandom.normal(subkey, shape=(N, self.emb_dim))
+        
+        return vmap(self.M_proj)(z)
+    
     def M_proj(self,
                x:Array,
                )->Array:
         
         x /= self.params
         
-        return self.params*x/jnp.linalg.norm(x)
+        return lax.cond(jnp.linalg.norm(x)>self.eps,
+                        lambda *_: self.params*x/jnp.linalg.norm(x),
+                        lambda *_: self.params*jnp.ones_like(x)/jnp.linalg.norm(jnp.ones_like(x)),
+                        )
     
     def TM_proj(self,
                x:Array,

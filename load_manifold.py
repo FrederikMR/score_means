@@ -14,7 +14,8 @@ from jax.nn import tanh
 
 from typing import List, Tuple
 
-from score_means.manifolds import nSphere, nEllipsoid
+from score_means.manifolds import nSphere, nEllipsoid, SPDN, HyperbolicSpace, FisherRaoGeometry, \
+    HyperbolicParaboloid, T2, H2, nEuclidean, Paraboloid, Landmarks
 
 #%% Layers
 
@@ -60,6 +61,49 @@ def load_manifold(manifold:str, dim:int=None)->Tuple[object, Array, List]:
         x0 = x0.at[-1].set(1.0)
         x0 *= params
         layers = get_layers(manifold, dim)
+    elif manifold == "SPDN":
+        M = SPDN(N=dim)
+        x0 = jnp.eye(dim).reshape(-1)
+        layers = get_layers(manifold, dim)
+    elif manifold == "HyperbolicSpace":
+        M = HyperbolicSpace(dim=dim)
+        val = jnp.ones(dim)
+        x0 = jnp.zeros(dim+1)
+        x0 = x0.at[:-1].set(val)
+        x0 = x0.at[-1].set(jnp.sqrt(jnp.sum(x0)+1))
+        layers = get_layers(manifold, dim)
+    elif manifold == "Gaussian":
+        M = FisherRaoGeometry(distribution="Gaussian")
+        x0 = jnp.array([100.0, 1000.0])
+        layers = get_layers(manifold, dim)
+    elif manifold == "HyperbolicParaboloid":
+        M = HyperbolicParaboloid()
+        x0 = jnp.zeros(2, dtype=jnp.float32)
+        layers = get_layers(manifold, 2)
+    elif manifold == "T2":
+        M = T2(R=3.0, r=1.0)
+        x0 = jnp.zeros(2, dtype=jnp.float32)
+        layers = get_layers(manifold, 2)
+    elif manifold == "Cylinder":
+        M = T2(r=1.0)
+        x0 = jnp.zeros(2, dtype=jnp.float32)
+        layers = get_layers(manifold, 2)
+    elif manifold == "H2":
+        M = H2()
+        x0 = jnp.zeros(2, dtype=jnp.float32)
+        layers = get_layers(manifold, 2)
+    elif manifold == "nEuclidean":
+        M = nEuclidean(dim=dim)
+        x0 = jnp.zeros(dim, dtype=jnp.float32)
+        layers = get_layers(manifold, dim)
+    elif manifold == "Paraboloid":
+        M = Paraboloid()
+        x0 = jnp.zeros(2, dtype=jnp.float32)
+        layers = get_layers(manifold, 2)
+    elif manifold == "Landmarks":
+        M = Landmarks(N=dim, m=2)
+        x0 = jnp.vstack((jnp.linspace(-5.0,5.0,M.N),jnp.linspace(0.0,0.0,M.N))).reshape(-1)
+        layers = get_layers(manifold, dim*2)
     else:
         raise ValueError("The manifold is not implemented")
 

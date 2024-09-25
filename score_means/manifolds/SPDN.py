@@ -17,13 +17,18 @@ from .manifold import RiemannianManifold
 class SPDN(RiemannianManifold):
     def __init__(self,
                  N:int=2,
-                 params:Array=None,
                  eps:float=1e-10,
+                 seed:int=2712,
                  )->None:
 
+        self.N = N
         self.dim = N*(N-1)//2
         self.emb_dim = N**2
         self.eps = eps
+        
+        self.seed = seed
+        self.key = jrandom.key(seed)
+        
         super().__init__(f=self.f_stereographic, 
                          invf = self.invf_stereographic,
                          intrinsic=False)
@@ -51,33 +56,85 @@ class SPDN(RiemannianManifold):
         x0 = x[0]
         return x[1:]/(1+x0)
     
-    def M_proj(self,
-               x:Array,
-               )->Array:
-        
-        x /= self.params
-        
-        return self.params*x/jnp.linalg.norm(x)
-    
     def TM_proj(self,
                x:Array,
                v:Array,
                )->Array:
         
-        x /= self.params
-        v /= self.params
+        x = x.reshape(self.N, self.N)
+        v = v.reshape(self.N, self.N)
         
-        return self.params*(v-jnp.dot(v,x)*x)
+        return (0.5*(v+v.T)).reshape(-1)
+    
+    def sample(self,
+               N:int,
+               x0:Array,
+               sigma:float=1.0,
+               )->Array:
+    
+        x0 = x0.reshape(self.N, self.N)-jnp.eye(self.N)
+        
+        key, subkey = jrandom.split(self.key)
+        self.key = key
+        z1 = jrandom.normal(subkey, shape=(N, self.N))
+        
+        key, subkey = jrandom.split(self.key)
+        self.key = key
+        s = jrandom.normal(subkey, shape=(N, self.N, self.N))
+        Q,_ = jnp.linalg.qr(s)
+
+        D = jnp.eye(self.N)+vmap(jnp.diag)(z1)
+        
+        return (x0+jnp.einsum('...ij,...jk,...lk->...il', Q, D, Q)).reshape(-1, 2*self.N)
     
     def dist(self,
              x:Array,
              y:Array
              )->Array:
         
-        x /= self.params
-        y /= self.params
+        x = x.reshape(self.N, self.N)
+        y = y.reshape(self.N, self.N)
         
-        return jnp.arccos(jnp.dot(x,y))
+        xinv = jnp.linalg.inv(x)
+        xinv_half = self.sqrtm(xinv)
+        
+        inner = jnp.einsum('ij,jk,kl->il', xinv_half, y, xinv_half)
+        log_mat = self.logm(inner)
+        
+        return jnp.linalg.norm(log_mat, ord='fro')
+    
+    def expm(self,
+             x:Array,
+             )->Array:
+        
+        x = x.reshape(self.N, self.N)
+        
+        U,S,V = jnp.linalg.svd(x)
+        exp_val = jnp.einsum('ij,jk,kl->il', U, jnp.diag(jnp.exp(S)), V)
+        
+        return exp_val
+    
+    def logm(self,
+             x:Array,
+             )->Array:
+        
+        x = x.reshape(self.N, self.N)
+        
+        U,S,V = jnp.linalg.svd(x)
+        log_val = jnp.einsum('ij,jk,kl->il', U, jnp.diag(jnp.log(S)), V)
+        
+        return log_val
+    
+    def sqrtm(self,
+              x:Array,
+              )->Array:
+        
+        x = x.reshape(self.N, self.N)
+        
+        U,S,V = jnp.linalg.svd(x)
+        sqrt_val = jnp.einsum('ij,jk,kl->il', U, jnp.diag(jnp.sqrt(S)), V)
+        
+        return sqrt_val
     
     def Exp(self,
             x:Array,
@@ -85,37 +142,58 @@ class SPDN(RiemannianManifold):
             T:float=1.0,
             )->Array:
         
-        x /= self.params
-        v /= self.params
+        x = x.reshape(self.N, self.N)
+        v = T*v.reshape(self.N, self.N)
         
-        norm = jnp.linalg.norm(v)
+        xinv = jnp.linalg.inv(x)
+        x_half = self.sqrtm(x)
+        xinv_half = self.sqrtm(xinv)
+        #x_half = jnp.real(jscipy.linalg.sqrtm(x))
+        #xinv_half = jnp.real(jscipy.linalg.sqrtm(xinv))
         
-        y = lax.cond(norm>self.eps,
-                     lambda *_: (jnp.cos(norm*T)*x+jnp.sin(norm*T)*v/norm)*self.params,
-                     lambda *_: x,
-                     )
-
-        return self.M_proj(y)
+        inner = jnp.einsum('ij,jk,kl->il', xinv_half, v, xinv_half)
+        res = jnp.einsum('ij,jk,kl->il', x_half, self.expm(inner), x_half)
+        #res = jnp.einsum('ij,jk,kl->il', x_half, jscipy.linalg.expm(inner), x_half)
+        
+        return res.reshape(-1)
     
     def Log(self,
             x:Array,
             y:Array
             )->Array:
         
-        x /= self.params
-        y /= self.params
+        x = x.reshape(self.N, self.N)
+        y = y.reshape(self.N, self.N)
         
-        dot = jnp.dot(x,y)
-        dist = jnp.arccos(jnp.dot(x,y))
-        val = y-dot*x
-        norm = jnp.linalg.norm(val)
+        xinv = jnp.linalg.inv(x)
+        x_half = self.sqrtm(x)
+        xinv_half = self.sqrtm(xinv)
         
-        v = lax.cond(norm>self.eps,
-                     lambda *_: self.params*dist*val/norm,
-                     lambda *_: jnp.zeros_like(x),
-                     )
+        #x_half = jnp.real(jscipy.linalg.sqrtm(x))
+        #xinv = jnp.linalg.inv(x)
+        #xinv_half = jnp.real(jscipy.linalg.sqrtm(xinv))
+        inner = jnp.einsum('ij,jk,kl->il', xinv_half, y, xinv_half)
+        log_mat = self.logm(inner)
         
-        return v
+        res = jnp.einsum('ij,jk,kl->il', x_half, log_mat, x_half)
+        
+        return res.reshape(-1)
+    
+    def dot(self,
+            x:Array,
+            v:Array,
+            w:Array
+            )->Array:
+        
+        x = x.reshape(self.N, self.N)
+        v = v.reshape(self.N, self.N)
+        w = w.reshape(self.N, self.N)
+        
+        x_inv = jnp.linalg.inv(x)
+        
+        res = jnp.einsum('ij,jk,kl,lu->iu', x_inv, v, x_inv, w)
+        
+        return jnp.trace(res)
     
     def Geodesic(self,
                  x:Array,

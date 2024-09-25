@@ -90,8 +90,8 @@ def train_s1(M:RiemannianManifold,
                                mu_dtype=None)
         
     train_dataset = tf.data.Dataset.from_generator(generator,output_types=tf.float32,
-                                                   output_shapes=([generator.t_samples,
-                                                                   generator.N_sim,
+                                                   output_shapes=([generator.dt_steps,
+                                                                   generator.N_out,
                                                                    3*generator.dim+2]))
     train_dataset = iter(tfds.as_numpy(train_dataset))
         
@@ -115,24 +115,8 @@ def train_s1(M:RiemannianManifold,
     for step in range(epochs):
         data = next(train_dataset)
         if ((jnp.isnan(jnp.sum(data)))):
-            generator.x0s = generator.x0s_init
-            train_dataset = tf.data.Dataset.from_generator(generator,output_types=tf.float32,
-                                                           output_shapes=([generator.t_samples,
-                                                                           generator.N_sim,
-                                                                           3*generator.dim+2]))
-            train_dataset = iter(tfds.as_numpy(train_dataset))
             continue
-        new_state, loss_val = update(state, data)
-        if ((not any(jnp.sum(jnp.isnan(val))>0 for val in new_state.params[list(new_state.params.keys())[0]].values())) \
-                and (loss_val<1e12)):
-            state = new_state
-        else:
-            generator.x0s = generator.x0s_default
-            train_dataset = tf.data.Dataset.from_generator(generator,output_types=tf.float32,
-                                                           output_shapes=([generator.t_samples,
-                                                                           generator.N_sim,
-                                                                           3*generator.dim+2]))
-            train_dataset = iter(tfds.as_numpy(train_dataset))
+        state, loss_val = update(state, data)
         if (step+1) % save_step == 0:
             loss_val = device_get(loss_val).item()
             loss.append(loss_val)
@@ -226,8 +210,8 @@ def train_st(M:object,
                                mu_dtype=None)
         
     train_dataset = tf.data.Dataset.from_generator(generator,output_types=tf.float32,
-                                                   output_shapes=([generator.t_samples,
-                                                                   generator.N_sim,
+                                                   output_shapes=([generator.dt_steps,
+                                                                   generator.N_out,
                                                                    3*generator.dim+2]))
     train_dataset = iter(tfds.as_numpy(train_dataset))
         
@@ -250,24 +234,8 @@ def train_st(M:object,
     for step in range(epochs):
         data = next(train_dataset)
         if ((jnp.isnan(jnp.sum(data)))):
-            generator.x0s = generator.x0s_default
-            train_dataset = tf.data.Dataset.from_generator(generator,output_types=tf.float32,
-                                                           output_shapes=([generator.t_samples,
-                                                                           generator.N_sim,
-                                                                           3*generator.dim+2]))
-            train_dataset = iter(tfds.as_numpy(train_dataset))
             continue
-        new_state, loss_val = update(state, data)
-        if ((not any(jnp.sum(jnp.isnan(val))>0 for val in new_state.params[list(new_state.params.keys())[0]].values())) \
-                and (loss_val<1e12)):
-            state = new_state
-        else:
-            generator.x0s = generator.x0s_default
-            train_dataset = tf.data.Dataset.from_generator(generator,output_types=tf.float32,
-                                                           output_shapes=([generator.t_samples,
-                                                                           generator.N_sim,
-                                                                           3*generator.dim+2]))
-            train_dataset = iter(tfds.as_numpy(train_dataset))
+        state, loss_val = update(state, data)
         if (step+1) % save_step == 0:
             loss_val = device_get(loss_val).item()
             loss.append(loss_val)

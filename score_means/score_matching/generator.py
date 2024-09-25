@@ -19,9 +19,8 @@ class BrownianSampler(object):
     def __init__(self,
                  M:RiemannianManifold,
                  x0:Array,
-                 repeats:int=32,
-                 x_samples:int=1,
-                 t_samples:int=10,
+                 sigma:float=1.0,
+                 N_samples:int=32,
                  dt_steps:int=100,
                  T:float=1.0,
                  T_sample:bool = False,
@@ -32,26 +31,17 @@ class BrownianSampler(object):
         self.M = M
         self.sampler = BrownianMotion(M, dt_steps, seed)
         
-        self.repeats = repeats
-        self.x_samples = x_samples
-        if t_samples > dt_steps:
-            self.t_samples = dt_steps
-        else:
-            self.t_samples = t_samples
-        self.N_sim = x_samples*repeats
+        self.x0 = x0
+        self.sigma = sigma
+        
+        self.N_samples = N_samples
+        self.N_out = N_samples
+        self.dt_steps = dt_steps
         
         self.T = T
         
         self.T_sample = T_sample
         self.t0 = t0
-        
-        if x0.ndim == 1:
-            x0s = jnp.tile(x0, (repeats,1))
-            self.x0s_init = x0s
-            self.x0s = x0s
-        else:
-            self.x0s_init = x0
-            self.x0s = x0
             
         if M.intrinsic:
             self.dim = M.dim
@@ -68,29 +58,24 @@ class BrownianSampler(object):
         
         while True:
             
-            dt, t, dW, xt = self.sampler(self.x0s, self.T)
-
-            self.x0s = xt[-1] 
-            
-            if jnp.isnan(jnp.sum(xt)):
-                self.x0s = self.x0s_init
+            x0s = self.M.sample(self.N_samples, x0=self.x0, sigma=self.sigma)
+            dt, t, dW, xt = self.sampler(x0s, self.T)
                 
-            x0s = jnp.tile(jnp.repeat(self.x0s,
-                                      self.x_samples,
-                                      axis=0),
-                           (self.sampler.dt_steps,1,1)
+            x0s = jnp.tile(x0s,
+                           (self.dt_steps,1,1)
                            )
-            t = jnp.tile(t, 
-                          (self.N_sim, 1)).T.reshape(self.sampler.dt_steps, 
-                                                     self.N_sim, 
-                                                     1)
-            dt = jnp.tile(dt, 
-                          (self.N_sim, 1)).T.reshape(self.sampler.dt_steps, 
-                                                     self.N_sim, 
-                                                     1)
             
+            t = jnp.tile(t,
+                         (self.N_samples, 1)).T.reshape(self.dt_steps, 
+                                                        self.N_samples, 
+                                                        1)
+            dt = jnp.tile(dt, 
+                          (self.N_samples, 1)).T.reshape(self.dt_steps, 
+                                                         self.N_samples, 
+                                                         1)
+                                                         
             if not self.T_sample:
-                inds = jnp.array(random.sample(range(self.sampler.dt_steps), self.t_samples))
+                inds = jnp.array(random.sample(range(self.dt_steps), self.dt_steps))
                 x0s = x0s[inds]
                 xt = xt[inds]
                 t = t[inds]

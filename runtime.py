@@ -38,7 +38,7 @@ from score_means.models import MLP_S1, MLP_St
 def parse_args():
     parser = argparse.ArgumentParser()
     # File-paths
-    parser.add_argument('--manifold', default="nSphere",
+    parser.add_argument('--manifold', default="nEllipsoid",
                         type=str)
     parser.add_argument('--dim', default=2,
                         type=int)
@@ -46,7 +46,7 @@ def parse_args():
                         type=str)
     parser.add_argument('--s2_loss_type', default="dsm",
                         type=str)
-    parser.add_argument('--dt_approx', default="st",
+    parser.add_argument('--dt_approx', default="s1",
                         type=str)
     parser.add_argument('--t0', default=0.01,
                         type=float)
@@ -62,8 +62,6 @@ def parse_args():
                         type=str)
     parser.add_argument('--benchmark', default=0,
                         type=int)
-    parser.add_argument('--method', default="Gradient",
-                        type=str)
     parser.add_argument('--data_path', default='data/',
                         type=str)
     parser.add_argument('--save_path', default='table/estimates/',
@@ -159,7 +157,6 @@ def runtime_diffusion_mean()->None:
     st_path = f"scores/{args.manifold}{args.dim}/st/"
     s1_path = f"scores/{args.manifold}{args.dim}/s1_{args.s1_loss_type}/"
     
-    
     M, x0, layers, acts = load_manifold(args.manifold, args.dim)
     layers_s1, layers_s2 = layers
     acts_s1, acts_s2 = acts
@@ -207,14 +204,25 @@ def runtime_diffusion_mean()->None:
     
     from jax import vmap
     print(jnp.mean(vmap(lambda x: ScoreGrad.gradt(x,x0,0.2))(X_obs), axis=0))
-    print(X_obs[0])
+    print(X_obs[100])
     
     t,x = ScoreMean(X_obs[0],
                     args.t_init,
                     X_obs)
     
+    import matplotlib.pyplot as plt
+    
+    fig = plt.figure(figsize=(10,10))
+    
+    ax = fig.add_subplot(111, projection='3d')
+    ax.scatter(X_obs[:,0], X_obs[:,1], X_obs[:,2])
+    ax.scatter(x[0],x[1],x[2], s=1000)
+    
     print(t)
     print(x)
+    print(jnp.mean(vmap(lambda xt: ScoreGrad.grady(xt,x,t))(X_obs), axis=0))
+    
+    print(x0)
     
     return
     

@@ -85,9 +85,9 @@ class RiemannianManifold(ABC):
         
         return jnp.linalg.inv(self.G(z))
     
-    def christoffel_symbols(self,
-                            z:Array
-                            )->Array:
+    def Chris(self,
+              z:Array
+              )->Array:
         
         Dgx = self.DG(z)
         gsharpx = self.Ginv(z)

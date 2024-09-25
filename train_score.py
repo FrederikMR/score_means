@@ -26,7 +26,7 @@ from score_means.score_matching import train_s1, train_st
 def parse_args():
     parser = argparse.ArgumentParser()
     # File-paths
-    parser.add_argument('--manifold', default="nSphere",
+    parser.add_argument('--manifold', default="nEllipsoid",
                         type=str)
     parser.add_argument('--dim', default=2,
                         type=int)
@@ -40,7 +40,7 @@ def parse_args():
                         type=float)
     parser.add_argument('--gamma', default=1.0,
                         type=float)
-    parser.add_argument('--train_net', default="s1",
+    parser.add_argument('--train_net', default="st",
                         type=str)
     parser.add_argument('--T', default=1.0,
                         type=float)
@@ -50,11 +50,7 @@ def parse_args():
                         type=int)
     parser.add_argument('--warmup_epochs', default=1000,
                         type=int)
-    parser.add_argument('--x_samples', default=1, #32
-                        type=int)
-    parser.add_argument('--t_samples', default=100,#128
-                        type=int)
-    parser.add_argument('--repeats', default=1024, #32
+    parser.add_argument('--N_samples', default=32, #32
                         type=int)
     parser.add_argument('--dt_steps', default=100,
                         type=int)
@@ -99,9 +95,7 @@ def train_score()->None:
     
     data_generator = BrownianSampler(M, 
                                      x0,
-                                     repeats=args.repeats,
-                                     x_samples=args.x_samples,
-                                     t_samples=args.t_samples,
+                                     N_samples=args.N_samples,
                                      dt_steps=args.dt_steps,
                                      T=args.T,
                                      T_sample=args.T_sample,

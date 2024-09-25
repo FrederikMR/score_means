@@ -29,7 +29,7 @@ from score_means.sampling import BrownianMotion
 def parse_args():
     parser = argparse.ArgumentParser()
     # File-paths
-    parser.add_argument('--manifold', default="nSphere",
+    parser.add_argument('--manifold', default="nEllipsoid",
                         type=str)
     parser.add_argument('--dim', default=2,
                         type=int)
