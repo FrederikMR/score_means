@@ -1,6 +1,6 @@
 #!/bin/sh
 #BSUB -q gpuv100
-#BSUB -J nSphere2_spism
+#BSUB -J nEllipsoid_s1ism
 #BSUB -n 4
 #BSUB -gpu "num=1:mode=exclusive_process"
 #BSUB -W 4:00
@@ -18,8 +18,8 @@ module swap cudnn/v8.9.1.23-prod-cuda-12.X
 module swap python3/3.10.12
 
 python3 train_score.py \
-    --manifold nSphere \
-    --dim 2 \
+    --manifold nEllipsoid \
+    --dim 10 \
     --loss_type ism \
     --load_model 0 \
     --T_sample 0 \
@@ -30,9 +30,7 @@ python3 train_score.py \
     --lr_rate 0.001 \
     --epochs 50000 \
     --warmup_epochs 1000 \
-    --x_samples 1 \
-    --t_samples 100 \
-    --repeats 1024 \
+    --N_samples 1024 \
     --dt_steps 100 \
     --save_step 100 \
     --seed 2712
