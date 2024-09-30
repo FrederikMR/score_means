@@ -90,8 +90,8 @@ def train_s1(M:RiemannianManifold,
                                mu_dtype=None)
         
     train_dataset = tf.data.Dataset.from_generator(generator,output_types=tf.float32,
-                                                   output_shapes=([generator.dt_steps,
-                                                                   generator.N_out,
+                                                   output_shapes=([generator.t_samples,
+                                                                   generator.N_samples,
                                                                    3*generator.dim+2]))
     train_dataset = iter(tfds.as_numpy(train_dataset))
         
@@ -210,8 +210,8 @@ def train_st(M:object,
                                mu_dtype=None)
         
     train_dataset = tf.data.Dataset.from_generator(generator,output_types=tf.float32,
-                                                   output_shapes=([generator.dt_steps,
-                                                                   generator.N_out,
+                                                   output_shapes=([generator.t_samples,
+                                                                   generator.N_samples,
                                                                    3*generator.dim+2]))
     train_dataset = iter(tfds.as_numpy(train_dataset))
         

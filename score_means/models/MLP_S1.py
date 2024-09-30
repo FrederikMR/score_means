@@ -45,8 +45,10 @@ class MLP_S1(hk.Module):
         if self.M.intrinsic:
             return hk.Linear(self.M.dim)(encoded)
         else:
-            x_point = x.T[self.M.emb_dim:(2*self.M.emb_dim)].T
+            x_point = x.T[:self.M.emb_dim].T
             if x.ndim == 1:
+                #return hk.Linear(self.M.emb_dim)(encoded)
                 return self.M.TM_proj(x_point, hk.Linear(self.M.emb_dim)(encoded))
             else:
+                #return hk.Linear(self.M.emb_dim)(encoded)
                 return vmap(self.M.TM_proj)(x_point, hk.Linear(self.M.emb_dim)(encoded))

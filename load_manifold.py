@@ -74,7 +74,7 @@ def load_manifold(manifold:str, dim:int=None)->Tuple[object, Array, List]:
         layers = get_layers(manifold, dim)
     elif manifold == "Gaussian":
         M = FisherRaoGeometry(distribution="Gaussian")
-        x0 = jnp.array([100.0, 1000.0])
+        x0 = jnp.array([0.0, 0.0])
         layers = get_layers(manifold, dim)
     elif manifold == "HyperbolicParaboloid":
         M = HyperbolicParaboloid()

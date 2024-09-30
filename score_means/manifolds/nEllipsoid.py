@@ -68,7 +68,7 @@ class nEllipsoid(RiemannianManifold):
         key, subkey = jrandom.split(self.key)
         self.key = key
     
-        z = sigma*jrandom.normal(subkey, shape=(N, self.emb_dim))
+        z = x0+sigma*jrandom.normal(subkey, shape=(N, self.emb_dim))
         
         return vmap(self.M_proj)(z)
     

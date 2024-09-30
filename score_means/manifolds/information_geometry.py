@@ -263,11 +263,20 @@ class FisherRaoGeometry(RiemannianManifold):
     
     def G_gaussian(self, z:Array)->Array:
         
-        mu, sigma2 = z[0], z[1]**2
+        mu, q = z[0], z[1]
+        sigma2 = jnp.exp(2*q)
+        diff = lambda x: jnp.array([x[0], jnp.exp(x[1])])
+        J = jacfwd(diff)(z)
         
-        return jnp.array([[1.0/(sigma2), 0],
-                          [0, 2.0/(sigma2)]
-                          ])
+        G = jnp.array([[1.0/(sigma2), 0],
+                       [0, 2.0/(sigma2)]
+                       ])
+        
+        return jnp.einsum('ij,ik,kl->jl', J, G, J)
+        
+        #return jnp.array([[1.0/(sigma2), 0],
+        #                  [0, 2.0/(sigma2)]
+        #                  ])
     
     def G_laplace(self, z:Array)->Array:
         

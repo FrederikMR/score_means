@@ -38,7 +38,7 @@ from score_means.models import MLP_S1, MLP_St
 def parse_args():
     parser = argparse.ArgumentParser()
     # File-paths
-    parser.add_argument('--manifold', default="nEllipsoid",
+    parser.add_argument('--manifold', default="nSphere",
                         type=str)
     parser.add_argument('--dim', default=2,
                         type=int)
@@ -46,13 +46,13 @@ def parse_args():
                         type=str)
     parser.add_argument('--s2_loss_type', default="dsm",
                         type=str)
-    parser.add_argument('--dt_approx', default="s1",
+    parser.add_argument('--dt_approx', default="st",
                         type=str)
     parser.add_argument('--t0', default=0.01,
                         type=float)
     parser.add_argument('--lr_rate', default=0.01,
                         type=float)
-    parser.add_argument('--score_iter', default=1000,
+    parser.add_argument('--score_iter', default=10000,
                         type=int)
     parser.add_argument('--bridge_iter', default=100,
                         type=int)
@@ -195,16 +195,16 @@ def runtime_diffusion_mean()->None:
                      max_iter=args.score_iter,
                      )
     
-    #ScoreMean = GradientDescent(M,
-    #                            grady_fun=ScoreGrad.grady,
-    #                            gradt_fun=ScoreGrad.gradt,
-    #                            lr_rate=args.lr_rate,
-    #                            max_iter=args.score_iter,
-    #                            )
+    ScoreMean = GradientDescent(M,
+                                grady_fun=ScoreGrad.grady,
+                                gradt_fun=ScoreGrad.gradt,
+                                lr_rate=args.lr_rate,
+                                max_iter=args.score_iter,
+                                )
     
     from jax import vmap
-    print(jnp.mean(vmap(lambda x: ScoreGrad.gradt(x,x0,0.2))(X_obs), axis=0))
-    print(X_obs[100])
+    print(jnp.mean(vmap(lambda x: ScoreGrad.gradt(x0,x,0.2))(X_obs), axis=0))
+    print(X_obs[0])
     
     t,x = ScoreMean(X_obs[0],
                     args.t_init,
@@ -220,9 +220,17 @@ def runtime_diffusion_mean()->None:
     
     print(t)
     print(x)
-    print(jnp.mean(vmap(lambda xt: ScoreGrad.grady(xt,x,t))(X_obs), axis=0))
+    print(jnp.mean(vmap(lambda xt: ScoreGrad.grady(x,xt,t))(X_obs), axis=0))
     
     print(x0)
+    
+    s1_fun = lambda x,y,t: s1_model.apply(s1_state.params, rng_key, jnp.hstack((x,y,t)))
+    
+    print(jnp.mean(vmap(lambda xt: s1_fun(x0,xt,0.5))(X_obs), axis=0))
+    print(jnp.mean(vmap(lambda xt: s1_fun(xt,x0,0.5))(X_obs), axis=0))
+    
+    print(jnp.mean(vmap(lambda xt: s1_fun(x,xt,t))(X_obs), axis=0))
+    print(jnp.mean(vmap(lambda xt: s1_fun(xt,x,t))(X_obs), axis=0))
     
     return
     

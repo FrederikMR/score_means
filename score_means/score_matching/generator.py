@@ -20,7 +20,9 @@ class BrownianSampler(object):
                  M:RiemannianManifold,
                  x0:Array,
                  sigma:float=1.0,
-                 N_samples:int=32,
+                 x0_samples:int=32,
+                 xt_samples:int=32,
+                 t_samples:int=32,
                  dt_steps:int=100,
                  T:float=1.0,
                  T_sample:bool = False,
@@ -34,8 +36,14 @@ class BrownianSampler(object):
         self.x0 = x0
         self.sigma = sigma
         
-        self.N_samples = N_samples
-        self.N_out = N_samples
+        self.x0_samples = x0_samples
+        self.xt_samples = xt_samples
+        if t_samples>dt_steps:
+            self.t_samples = dt_steps
+        else:
+            self.t_samples = t_samples
+        
+        self.N_samples = x0_samples*xt_samples
         self.dt_steps = dt_steps
         
         self.T = T
@@ -58,9 +66,13 @@ class BrownianSampler(object):
         
         while True:
             
-            x0s = self.M.sample(self.N_samples, x0=self.x0, sigma=self.sigma)
+            #x0s = self.M.sample(self.N_samples, x0=self.x0, sigma=self.sigma).squeeze()
+            x0s = self.M.sample(self.x0_samples, x0=self.x0, sigma=self.sigma)
+            x0s = jnp.tile(x0s, (self.xt_samples, 1, 1)).reshape(self.N_samples,-1)
+            #x0s = self.x0s
             dt, t, dW, xt = self.sampler(x0s, self.T)
-                
+            #self.x0s = xt[-1]
+
             x0s = jnp.tile(x0s,
                            (self.dt_steps,1,1)
                            )
@@ -75,7 +87,7 @@ class BrownianSampler(object):
                                                          1)
                                                          
             if not self.T_sample:
-                inds = jnp.array(random.sample(range(self.dt_steps), self.dt_steps))
+                inds = jnp.array(random.sample(range(self.dt_steps), self.t_samples))
                 x0s = x0s[inds]
                 xt = xt[inds]
                 t = t[inds]
