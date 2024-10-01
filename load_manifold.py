@@ -33,10 +33,12 @@ def get_layers(manifold:str, dim:int)->Tuple[List, List, List, List]:
         #    layers_s1 = [512, 512, 512, 512, 512]
         #    layers_s2 = [128, 128, 128, 128, 128]
     elif manifold == "Sphere":
-        layers_s1 = [512, 512, 512, 512, 512]
-        layers_s2 = [512, 512, 512, 512, 512]
-        acts_s1 = [tanh, tanh, tanh, tanh, tanh]
-        acts_s2 = [tanh, tanh, tanh, tanh, tanh]
+        layers_s1 = [512, 512, 512]
+        layers_s2 = [512, 512, 512]
+        #layers_s1 = [512, 512, 512, 512, 512]
+        #layers_s2 = [512, 512, 512, 512, 512]
+        acts_s1 = [tanh]*len(layers_s1)
+        acts_s2 = [tanh]*len(layers_s2)
     else:
         layers_s1 = [512, 512, 512]
         layers_s2 = [512, 512, 512]
