@@ -1,6 +1,6 @@
 #!/bin/sh
 #BSUB -q gpuv100
-#BSUB -J nSphere2_stism
+#BSUB -J nSphere2_s1ism
 #BSUB -n 4
 #BSUB -gpu "num=1:mode=exclusive_process"
 #BSUB -W 4:00
@@ -26,7 +26,7 @@ python3 train_score.py \
     --t0 0.1 \
     --sigma 100.0 \
     --gamma 1.0 \
-    --train_net st \
+    --train_net s1 \
     --T 1.0 \
     --lr_rate 0.001 \
     --epochs 50000 \
