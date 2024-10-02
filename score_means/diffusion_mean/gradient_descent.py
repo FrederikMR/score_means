@@ -44,10 +44,10 @@ class GradientDescent(ABC):
              )->Array:
         
         t = sigmoid(q)
-        gradz = jnp.mean(vmap(lambda x: self.grady_fun(z,x,t))(self.X_obs), axis=0)
-        gradq = jnp.mean(vmap(lambda x: self.gradt_fun(z,x,t))(self.X_obs), axis=0)*grad(sigmoid)(q)
+        gradz = jnp.mean(vmap(lambda x: self.grady_fun(x,z,t))(self.X_obs), axis=0)
+        gradq = jnp.mean(vmap(lambda x: self.gradt_fun(x,z,t))(self.X_obs), axis=0)*grad(sigmoid)(q)
         
-        return jnp.hstack((gradz, -gradq))
+        return -jnp.hstack((gradz, gradq))
     
     def local_step(self,
                    carry:Tuple[Array,Array,Array,int], 
@@ -113,7 +113,5 @@ class GradientDescent(ABC):
                                              )
 
         t = sigmoid(q)
-        print(idx)
-        print(grad)
             
         return t, z

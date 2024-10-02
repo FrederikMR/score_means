@@ -70,6 +70,8 @@ class ScoreGradient(ABC):
         
     def grady(self, x:Array, y:Array, t:Array)->Array:
         
+        return self.M.TM_proj(y, self.s1_model(x,y,t))
+        
         return self.s1_model(x,y,t)#self.M.TM_proj(x, self.s1_model(x,y,t))
     
     def gradt(self, x:Array, y:Array, t:Array)->Array:

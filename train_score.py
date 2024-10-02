@@ -42,7 +42,7 @@ def parse_args():
                         type=float)
     parser.add_argument('--sigma', default=100.0,
                         type=float)
-    parser.add_argument('--train_net', default="st",
+    parser.add_argument('--train_net', default="s1",
                         type=str)
     parser.add_argument('--T', default=1.0,
                         type=float)

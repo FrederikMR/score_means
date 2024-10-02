@@ -224,13 +224,43 @@ def runtime_diffusion_mean()->None:
     
     print(x0)
     
-    s1_fun = lambda x,y,t: s1_model.apply(s1_state.params, rng_key, jnp.hstack((x,y,t)))
+    #samples = M.sample(1000, x0, sigma=1.0)
+    #fig = plt.figure(figsize=(10,10))
     
-    print(jnp.mean(vmap(lambda xt: s1_fun(x0,xt,0.5))(X_obs), axis=0))
-    print(jnp.mean(vmap(lambda xt: s1_fun(xt,x0,0.5))(X_obs), axis=0))
+    #ax = fig.add_subplot(111, projection='3d')
+    #ax.scatter(samples[:,0], samples[:,1], samples[:,2])
     
-    print(jnp.mean(vmap(lambda xt: s1_fun(x,xt,t))(X_obs), axis=0))
-    print(jnp.mean(vmap(lambda xt: s1_fun(xt,x,t))(X_obs), axis=0))
+    from jax import grad
+    
+    ScoreMean = GradientDescent(M,
+                                grady_fun=lambda x,y,t: M.TM_proj(y, 
+                                                                  grad(lambda x1,y1,t1: jnp.log(M.heat_kernel(x1,y1,t1)), 
+                                                                                                argnums=1)(x,y,t)),
+                                gradt_fun=lambda x,y,t: grad(lambda x1,y1,t1: jnp.log(M.heat_kernel(x1,y1,t1)), 
+                                                             argnums=2)(x,y,t),
+                                lr_rate=args.lr_rate,
+                                max_iter=args.score_iter,
+                                )
+    
+    t,x = ScoreMean(X_obs[0],
+                    args.t_init,
+                    X_obs)
+    
+    grady_fun=lambda x,y,t: M.TM_proj(x, 
+                                      grad(lambda x1,y1,t1: jnp.log(M.heat_kernel(x1,y1,t1)), 
+                                                                    argnums=0)(x,y,t))
+    
+    print(x)
+    print(t)
+    
+    fig = plt.figure(figsize=(10,10))
+    
+    ax = fig.add_subplot(111, projection='3d')
+    ax.scatter(X_obs[:,0], X_obs[:,1], X_obs[:,2])
+    ax.scatter(x[0],x[1],x[2], s=1000)
+    
+    print(grady_fun(x0,x0,0.5))
+    print(ScoreGrad.grady(x0, x0, 0.5))
     
     return
     

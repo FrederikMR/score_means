@@ -50,10 +50,10 @@ class ADAM(ABC):
            )->Array:
         
         t = sigmoid(q)
-        gradz = jnp.mean(vmap(lambda x: self.grady_fun(z,x,t))(self.X_obs), axis=0)
-        gradq = jnp.mean(vmap(lambda x: self.gradt_fun(z,x,t))(self.X_obs), axis=0)*grad(sigmoid)(q)
+        gradz = jnp.mean(vmap(lambda x: self.grady_fun(x,z,t))(self.X_obs), axis=0)
+        gradq = jnp.mean(vmap(lambda x: self.gradt_fun(x,z,t))(self.X_obs), axis=0)*grad(sigmoid)(q)
         
-        return jnp.hstack((gradz, -gradq))
+        return -jnp.hstack((gradz, gradq))
     
     def adam_update(self,
                     mt:Array,
