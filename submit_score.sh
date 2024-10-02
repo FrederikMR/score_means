@@ -24,7 +24,7 @@ python3 train_score.py \
     --load_model 0 \
     --T_sample 0 \
     --t0 0.1 \
-    --sigma 100.0 \
+    --sigma 1.0 \
     --gamma 1.0 \
     --train_net st \
     --T 1.0 \
