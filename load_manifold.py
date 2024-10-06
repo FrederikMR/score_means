@@ -21,7 +21,7 @@ from score_means.manifolds import nSphere, nEllipsoid, SPDN, HyperbolicSpace, Fi
 
 def get_layers(manifold:str, dim:int)->Tuple[List, List, List, List]:
     
-    if manifold == "Euclidean":
+    if manifold == "nEuclidean":
         layers_s1 = [128, 128, 128]
         layers_s2 = [128,128,128]
         acts_s1 = [tanh, tanh, tanh]

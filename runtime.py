@@ -30,7 +30,7 @@ from typing import List
 from load_manifold import load_manifold
 
 from score_means.score_matching import load_model
-from score_means.diffusion_mean import GradientDescent, ADAM, ScoreGradient
+from score_means.diffusion_mean import ScoreDiffusionMean
 from score_means.models import MLP_S1, MLP_St
 
 #%% Args Parser
@@ -38,7 +38,7 @@ from score_means.models import MLP_S1, MLP_St
 def parse_args():
     parser = argparse.ArgumentParser()
     # File-paths
-    parser.add_argument('--manifold', default="nSphere",
+    parser.add_argument('--manifold', default="HyperbolicParaboloid",
                         type=str)
     parser.add_argument('--dim', default=2,
                         type=int)
@@ -56,6 +56,8 @@ def parse_args():
                         type=int)
     parser.add_argument('--bridge_iter', default=100,
                         type=int)
+    parser.add_argument('--tol', default=1e-4,
+                        type=float)
     parser.add_argument('--t_init', default=0.2,
                         type=float)
     parser.add_argument('--estimate', default="diffusion_mean",
@@ -179,36 +181,18 @@ def runtime_diffusion_mean()->None:
                                                  )(x))
         st_fun = lambda x,y,t: st_model.apply(st_state.params, rng_key, jnp.hstack((x,y,t)))
     
-    ScoreGrad = ScoreGradient(M=M,
-                              s1_model = lambda x,y,t: s1_model.apply(s1_state.params, rng_key, jnp.hstack((x,y,t))),
-                              s2_model = None,
-                              st_model = st_fun,
-                              )
+    ScoreMean = ScoreDiffusionMean(M, 
+                                   grady_fun = lambda x,y,t: s1_model.apply(s1_state.params, rng_key, jnp.hstack((x,y,t))),
+                                   gradt_fun = st_fun,
+                                   lr_rate = args.lr_rate,
+                                   max_iter=args.score_iter,
+                                   tol=args.tol,
+                                   method="gradient",
+                                   )
     
-    ScoreMean = ADAM(M,
-                     grady_fun=ScoreGrad.grady,
-                     gradt_fun=ScoreGrad.gradt,
-                     lr_rate=args.lr_rate,
-                     beta1=0.9,
-                     beta2=0.999,
-                     eps=1e-08,
-                     max_iter=args.score_iter,
-                     )
-    
-    ScoreMean = GradientDescent(M,
-                                grady_fun=ScoreGrad.grady,
-                                gradt_fun=ScoreGrad.gradt,
-                                lr_rate=args.lr_rate,
-                                max_iter=args.score_iter,
-                                )
-    
-    from jax import vmap
-    print(jnp.mean(vmap(lambda x: ScoreGrad.gradt(x0,x,0.2))(X_obs), axis=0))
-    print(X_obs[0])
-    
-    t,x = ScoreMean(X_obs[0],
-                    args.t_init,
-                    X_obs)
+    t,x, grad_val, idx = ScoreMean(X_obs[0],
+                                   args.t_init,
+                                   X_obs)
     
     import matplotlib.pyplot as plt
     
@@ -218,49 +202,54 @@ def runtime_diffusion_mean()->None:
     ax.scatter(X_obs[:,0], X_obs[:,1], X_obs[:,2])
     ax.scatter(x[0],x[1],x[2], s=1000)
     
+    from jax import vmap, grad
+    from jax.nn import sigmoid
+    q0 = jnp.log(t/(1.-t))
+    print(jnp.mean(vmap(lambda y: ScoreMean.gradt(y,x,t))(ScoreMean.X_obs), axis=0))
+    print(grad(sigmoid)(q0))
+    print(jnp.mean(vmap(lambda y: ScoreMean.gradt(y,x,t))(ScoreMean.X_obs), axis=0)*grad(sigmoid)(q0))
+    
     print(t)
     print(x)
-    print(jnp.mean(vmap(lambda xt: ScoreGrad.grady(x,xt,t))(X_obs), axis=0))
-    
-    print(x0)
-    
-    #samples = M.sample(1000, x0, sigma=1.0)
-    #fig = plt.figure(figsize=(10,10))
-    
-    #ax = fig.add_subplot(111, projection='3d')
-    #ax.scatter(samples[:,0], samples[:,1], samples[:,2])
     
     from jax import grad
     
-    ScoreMean = GradientDescent(M,
-                                grady_fun=lambda x,y,t: M.TM_proj(y, 
-                                                                  grad(lambda x1,y1,t1: jnp.log(M.heat_kernel(x1,y1,t1)), 
-                                                                                                argnums=1)(x,y,t)),
-                                gradt_fun=lambda x,y,t: grad(lambda x1,y1,t1: jnp.log(M.heat_kernel(x1,y1,t1)), 
-                                                             argnums=2)(x,y,t),
-                                lr_rate=args.lr_rate,
-                                max_iter=args.score_iter,
-                                )
+    if M.intrinsic:
+        grady_fun=lambda x,y,t: grad(lambda x1,y1,t1: jnp.log(M.heat_kernel(x1,y1,t1)), 
+                                     argnums=1)(x,y,t)
+    else:
+        grady_fun=lambda x,y,t: M.TM_proj(y, 
+                                          grad(lambda x1,y1,t1: jnp.log(M.heat_kernel(x1,y1,t1)), 
+                                                                        argnums=1)(x,y,t))
+    gradt_fun=lambda x,y,t: grad(lambda x1,y1,t1: jnp.log(M.heat_kernel(x1,y1,t1)), 
+                                 argnums=2)(x,y,t)
     
-    t,x = ScoreMean(X_obs[0],
-                    args.t_init,
-                    X_obs)
+    ScoreMean = ScoreDiffusionMean(M, 
+                                   grady_fun = grady_fun,
+                                   gradt_fun = gradt_fun,
+                                   lr_rate = args.lr_rate,
+                                   max_iter=args.score_iter,
+                                   tol=args.tol,
+                                   method="gradient",
+                                   )
     
-    grady_fun=lambda x,y,t: M.TM_proj(x, 
-                                      grad(lambda x1,y1,t1: jnp.log(M.heat_kernel(x1,y1,t1)), 
-                                                                    argnums=0)(x,y,t))
+    t,x, grad_val, idx = ScoreMean(X_obs[0],
+                                   args.t_init,
+                                   X_obs)
     
-    print(x)
+    from jax import vmap
+    print(jnp.mean(vmap(lambda y: ScoreMean.gradt(y,x,t))(ScoreMean.X_obs), axis=0))
+    print(grad(sigmoid)(q0))
+    print(jnp.mean(vmap(lambda y: ScoreMean.gradt(y,x,t))(ScoreMean.X_obs), axis=0)*grad(sigmoid)(q0))
+    
     print(t)
+    print(x)
     
     fig = plt.figure(figsize=(10,10))
     
     ax = fig.add_subplot(111, projection='3d')
     ax.scatter(X_obs[:,0], X_obs[:,1], X_obs[:,2])
     ax.scatter(x[0],x[1],x[2], s=1000)
-    
-    print(grady_fun(x0,x0,0.5))
-    print(ScoreGrad.grady(x0, x0, 0.5))
     
     return
     

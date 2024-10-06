@@ -26,7 +26,7 @@ from score_means.score_matching import train_s1, train_st
 def parse_args():
     parser = argparse.ArgumentParser()
     # File-paths
-    parser.add_argument('--manifold', default="nSphere",
+    parser.add_argument('--manifold', default="HyperbolicParaboloid",
                         type=str)
     parser.add_argument('--dim', default=2,
                         type=int)
@@ -42,7 +42,7 @@ def parse_args():
                         type=float)
     parser.add_argument('--sigma', default=100.0,
                         type=float)
-    parser.add_argument('--train_net', default="s1",
+    parser.add_argument('--train_net', default="st",
                         type=str)
     parser.add_argument('--T', default=1.0,
                         type=float)
