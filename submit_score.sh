@@ -1,6 +1,6 @@
 #!/bin/sh
 #BSUB -q gpuv100
-#BSUB -J nSphere_s1ism
+#BSUB -J nSphere_stism
 #BSUB -n 4
 #BSUB -gpu "num=1:mode=exclusive_process"
 #BSUB -W 4:00
