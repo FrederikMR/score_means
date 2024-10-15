@@ -33,7 +33,7 @@ python3 train_score.py \
     --epochs 50000 \
     --warmup_epochs 1000 \
     --x0_samples 1 \
-    --xt_samples 512 \
+    --xt_samples 2048 \
     --dt_steps 100 \
     --save_step 100 \
     --seed 2712
