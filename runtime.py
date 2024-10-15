@@ -38,7 +38,7 @@ from score_means.models import MLP_S1, MLP_St
 def parse_args():
     parser = argparse.ArgumentParser()
     # File-paths
-    parser.add_argument('--manifold', default="HyperbolicParaboloid",
+    parser.add_argument('--manifold', default="nSphere",
                         type=str)
     parser.add_argument('--dim', default=2,
                         type=int)
@@ -52,7 +52,7 @@ def parse_args():
                         type=float)
     parser.add_argument('--lr_rate', default=0.01,
                         type=float)
-    parser.add_argument('--score_iter', default=10000,
+    parser.add_argument('--score_iter', default=1000,
                         type=int)
     parser.add_argument('--bridge_iter', default=100,
                         type=int)

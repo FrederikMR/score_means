@@ -15,6 +15,6 @@ import jax.numpy as jnp
 
 import jax.random as jrandom
 
-from typing import Tuple
+from typing import Tuple, Callable
 
 from abc import ABC

@@ -21,9 +21,9 @@ class BrownianSampler(object):
                  x0:Array,
                  sigma:float=1.0,
                  x0_samples:int=32,
-                 xt_samples:int=32,
-                 t_samples:int=32,
+                 xt_samples:int=16,
                  dt_steps:int=100,
+                 eps:float=1e-2,
                  T:float=1.0,
                  T_sample:bool = False,
                  t0:float = 0.1,
@@ -38,14 +38,10 @@ class BrownianSampler(object):
         
         self.x0_samples = x0_samples
         self.xt_samples = xt_samples
-        if t_samples>dt_steps:
-            self.t_samples = dt_steps
-        else:
-            self.t_samples = t_samples
-        
         self.N_samples = x0_samples*xt_samples
         self.dt_steps = dt_steps
         
+        self.eps = eps
         self.T = T
         
         self.T_sample = T_sample
@@ -56,54 +52,40 @@ class BrownianSampler(object):
         else:
             self.dim = M.emb_dim
             
+        self.seed = seed
+        self.key = jrandom.key(seed)
+            
         return
         
     def __str__(self)->str:
         
         return "Generator for Samples of Brownian Motion on Manifold"
+    
+    def t_sample(self,
+                 )->Array:
+        
+        key, subkey = jrandom.split(self.key)
+        self.key = key
+        
+        t = jrandom.uniform(subkey, shape=(1,), minval=self.eps, maxval=self.T)
+        
+        return z.squeeze()
         
     def __call__(self)->Tuple[Array, Array, Array, Array, Array]:
         
         while True:
             
-            #x0s = self.M.sample(self.N_samples, x0=self.x0, sigma=self.sigma).squeeze()
-            x0s = self.M.sample(self.x0_samples, x0=self.x0, sigma=self.sigma)
-            x0s = jnp.tile(x0s, (self.xt_samples, 1, 1)).reshape(self.N_samples,-1)
-            #x0s = self.x0s
-            dt, t, dW, xt = self.sampler(x0s, self.T)
-            #self.x0s = xt[-1]
-
-            x0s = jnp.tile(x0s,
-                           (self.dt_steps,1,1)
-                           )
-            
-            t = jnp.tile(t,
-                         (self.N_samples, 1)).T.reshape(self.dt_steps, 
-                                                        self.N_samples, 
-                                                        1)
-            dt = jnp.tile(dt, 
-                          (self.N_samples, 1)).T.reshape(self.dt_steps, 
-                                                         self.N_samples, 
-                                                         1)
-                                                         
+            x0s = self.M.sample(self.x0_samples, x0=self.x0, sigma=self.sigma).squeeze()
             if not self.T_sample:
-                inds = jnp.array(random.sample(range(self.dt_steps), self.t_samples))
-                x0s = x0s[inds]
-                xt = xt[inds]
-                t = t[inds]
-                dt = dt[inds]
-                dW = dW[inds]
+                t = self.t0
             else:
-                inds = jnp.argmin(jnp.abs(t-self.t0))
-                x0s = jnp.expand_dims(x0s[inds], axis=0)
-                xt = jnp.expand_dims(xt[inds], axis=0)
-                t = jnp.expand_dims(t[inds], axis=0)
-                dt = jnp.expand_dims(dt[inds],axis=0)
-                dW = jnp.expand_dims(dW[inds], axis=0)
+                t = self.t_sample().squeeze() 
                 
-            yield jnp.concatenate((x0s,
-                                   xt,
-                                   t,
-                                   dW,
-                                   dt,
-                                   ), axis=-1)
+            x0s = jnp.tile(x0s, (self.xt_samples, 1, 1)).reshape(-1,self.dim)
+            dt, t, dW, xt = self.sampler(x0s, t)
+            
+            x0s = jnp.tile(x0s, (self.dt_steps, 1, 1))
+            t = jnp.tile(t,(1, self.N_samples)).reshape(self.dt_steps, self.N_samples, 1)
+            dt = jnp.tile(dt,(1, self.N_samples)).reshape(self.dt_steps, self.N_samples, 1)
+
+            yield jnp.concatenate((x0s, xt, t, dW, dt), axis=-1)

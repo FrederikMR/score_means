@@ -8,4 +8,5 @@ Created on Mon Aug  5 15:06:00 2024
 
 #%% Modules
 
+from .riemannian_sde import RiemannianSDE
 from .brownian_motion import BrownianMotion

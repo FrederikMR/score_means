@@ -90,13 +90,13 @@ def train_s1(M:RiemannianManifold,
                                mu_dtype=None)
         
     train_dataset = tf.data.Dataset.from_generator(generator,output_types=tf.float32,
-                                                   output_shapes=([generator.t_samples,
+                                                   output_shapes=([generator.dt_steps,
                                                                    generator.N_samples,
                                                                    3*generator.dim+2]))
     train_dataset = iter(tfds.as_numpy(train_dataset))
         
     initial_rng_key = jrandom.PRNGKey(seed)
-    init_data = next(train_dataset)[:,:,:(2*generator.dim+1)].reshape(-1, 2*generator.dim+1)
+    init_data = next(train_dataset)[:,:,:(2*generator.dim+1)]
     if type(model) == hk.Transformed:
         if state is None:
             initial_params = model.init(jrandom.PRNGKey(seed), init_data)
@@ -210,13 +210,13 @@ def train_st(M:object,
                                mu_dtype=None)
         
     train_dataset = tf.data.Dataset.from_generator(generator,output_types=tf.float32,
-                                                   output_shapes=([generator.t_samples,
+                                                   output_shapes=([generator.dt_steps,
                                                                    generator.N_samples,
                                                                    3*generator.dim+2]))
     train_dataset = iter(tfds.as_numpy(train_dataset))
         
     initial_rng_key = jrandom.PRNGKey(seed)
-    init_data = next(train_dataset)[:,:,:(2*generator.dim+1)].reshape(-1, 2*generator.dim+1)
+    init_data = next(train_dataset)[:,:,:(2*generator.dim+1)]
     if type(model) == hk.Transformed:
         if state is None:
             initial_params = model.init(jrandom.PRNGKey(seed), init_data)
